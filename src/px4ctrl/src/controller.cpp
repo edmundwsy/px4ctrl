@@ -175,9 +175,9 @@ quadrotor_msgs::Px4ctrlDebug GeometricControl::calculateControl(const Desired_St
 
   // desired attitude
   Eigen::Quaterniond q = Eigen::Quaterniond(R_des);
-  std::cout << "q_des: " << q.x() << " " << q.y() << " " << q.z() << " " << q.w() << std::endl;
-  std::cout << "q_cur: " << odom.q.x() << " " << odom.q.y() << " " << odom.q.z() << " "
-            << odom.q.w() << std::endl;
+  // std::cout << "q_des: " << q.x() << " " << q.y() << " " << q.z() << " " << q.w() << std::endl;
+  // std::cout << "q_cur: " << odom.q.x() << " " << odom.q.y() << " " << odom.q.z() << " "
+  //           << odom.q.w() << std::endl;
 
   // error vector
   // Eigen::Vector3d e_R = 0.5 * veeMap(R_des.transpose() * odom.q.toRotationMatrix() -

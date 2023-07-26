@@ -1,4 +1,5 @@
 #include "controller.h"
+#include "Eigen/src/Geometry/Quaternion.h"
 
 using namespace std;
 
@@ -154,19 +155,35 @@ quadrotor_msgs::Px4ctrlDebug GeometricControl::calculateControl(const Desired_St
   des_acc = des.a + Kv.asDiagonal() * (des.v - odom.v) + Kp.asDiagonal() * (des.p - odom.p);
   des_acc += Eigen::Vector3d(0, 0, param_.gra);
 
-  u.thrust = computeDesiredCollectiveThrustSignal(des_acc);
-  double roll, pitch, yaw, yaw_imu;
-  double yaw_odom      = fromQuaternion2yaw(odom.q);
-  double sin           = std::sin(yaw_odom);
-  double cos           = std::cos(yaw_odom);
-  roll                 = (des_acc(0) * sin - des_acc(1) * cos) / param_.gra;
-  pitch                = (des_acc(0) * cos + des_acc(1) * sin) / param_.gra;
-  yaw_imu              = fromQuaternion2yaw(imu.q);
-  Eigen::Quaterniond q = Eigen::AngleAxisd(des.yaw, Eigen::Vector3d::UnitZ()) *
-                         Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
-                         Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX());
-  u.q = imu.q * odom.q.inverse() * q;
+  Eigen::Vector3d b3 = odom.q.toRotationMatrix().col(2);
 
+  // project desired acceleration onto b3
+  u.thrust = des_acc.dot(b3) / thr2acc_;
+
+  // align b3 with desired acceleration
+  Eigen::Vector3d b3c = des_acc.normalized();
+
+  // b2c should be perpendicular to b3c and a_yaw
+  Eigen::Vector3d a_yaw = Eigen::Vector3d(std::cos(des.yaw), std::sin(des.yaw), 0);
+  Eigen::Vector3d b2c   = b3c.cross(a_yaw).normalized();
+
+  // desired rotation matrix
+  Eigen::Matrix3d R_des = Eigen::Matrix3d::Zero();
+  R_des.col(0)          = b2c.cross(b3c);
+  R_des.col(1)          = b2c;
+  R_des.col(2)          = b3c;
+
+  // desired attitude
+  Eigen::Quaterniond q = Eigen::Quaterniond(R_des);
+  std::cout << "q_des: " << q.x() << " " << q.y() << " " << q.z() << " " << q.w() << std::endl;
+  std::cout << "q_cur: " << odom.q.x() << " " << odom.q.y() << " " << odom.q.z() << " "
+            << odom.q.w() << std::endl;
+
+  // error vector
+  // Eigen::Vector3d e_R = 0.5 * veeMap(R_des.transpose() * odom.q.toRotationMatrix() -
+  //                                    odom.q.toRotationMatrix().transpose() * R_des);
+
+  u.q = imu.q * odom.q.inverse() * q;
   /* see https://blog.csdn.net/weixin_44684139/article/details/109817172. convert the q in ENU frame
    * (defaut in ROS, also in odom)  into the NED frame (used in FCU). because we use the
    * setpoint_raw/attitude message, so we need to convert it manually. setpoint_attitude/attitude

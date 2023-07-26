@@ -75,7 +75,9 @@ class ControlBase {
 
 class LinearControl : public ControlBase {
  public:
-  LinearControl(Parameter_t &param) : ControlBase(param) {}
+  LinearControl(Parameter_t &param) : ControlBase(param) {
+    ROS_INFO("[px4ctrl] Controller: Linear control");
+  }
   ~LinearControl(){};
   quadrotor_msgs::Px4ctrlDebug calculateControl(const Desired_State_t &des,
                                                 const Odom_Data_t     &odom,
@@ -87,7 +89,9 @@ class LinearControl : public ControlBase {
 
 class GeometricControl : public ControlBase {
  public:
-  GeometricControl(Parameter_t &param) : ControlBase(param) {}
+  GeometricControl(Parameter_t &param) : ControlBase(param) {
+    ROS_INFO("[px4ctrl] Controller: Geometric control");
+  }
   ~GeometricControl(){};
   quadrotor_msgs::Px4ctrlDebug calculateControl(const Desired_State_t &des,
                                                 const Odom_Data_t     &odom,
